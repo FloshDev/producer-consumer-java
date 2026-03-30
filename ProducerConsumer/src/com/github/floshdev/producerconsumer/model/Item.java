@@ -2,20 +2,20 @@ package com.github.floshdev.producerconsumer.model;
 
 public class Item {
 
-	private final int id;
+	private final int idItem;
 	private final float weight;
 	private final Coordinate origin;
 	private final Coordinate destination;
 	
-	public Item(int id, float weight, Coordinate origin, Coordinate destination) {
-		this.id = id;
+	public Item(int idItem, float weight, Coordinate origin, Coordinate destination) {
+		this.idItem = idItem;
 		this.weight = weight;
 		this.origin = origin;
 		this.destination = destination;
 	}
 
 	public int getId() {
-		return id;
+		return idItem;
 	}
 
 	public float getWeight() {
@@ -32,7 +32,7 @@ public class Item {
 	
 	@Override
 	public String toString() {
-		return "ID Item: " + id;
+		return "ID Item: " + idItem;
 	}
 	
 }

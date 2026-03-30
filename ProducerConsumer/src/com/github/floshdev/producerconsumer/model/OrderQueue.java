@@ -1,4 +1,5 @@
 package com.github.floshdev.producerconsumer.model;
+
 import java.util.LinkedList;
 
 public class OrderQueue {

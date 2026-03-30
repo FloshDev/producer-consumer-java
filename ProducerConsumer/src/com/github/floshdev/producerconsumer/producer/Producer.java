@@ -1,0 +1,33 @@
+package com.github.floshdev.producerconsumer.producer;
+
+import com.github.floshdev.producerconsumer.model.*;
+import java.util.Random;
+
+public class Producer {
+	
+	private final int idProducer;
+	private int itemCounter;
+	private final OrderQueue queue;
+	private final Random random;
+	
+	public Producer(int idProducer, OrderQueue queue) {
+		this.idProducer = idProducer;
+		this.itemCounter = 0;
+		this.queue = queue;
+		this.random = new Random();
+	}
+	
+	private Item generateItem() {
+		itemCounter++;
+		float weight = 0.5f + random.nextFloat() * 49.5f;
+		Coordinate origin = new Coordinate(random.nextInt(100), random.nextInt(100));
+		Coordinate destination = new Coordinate(random.nextInt(100), random.nextInt(100));
+		return new Item(itemCounter, weight, origin, destination);
+	}
+	
+	public void enqueueItem() {
+		Item item = generateItem();
+		queue.enqueue(item);
+	}
+
+}
