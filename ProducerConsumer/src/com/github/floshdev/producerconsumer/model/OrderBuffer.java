@@ -2,11 +2,11 @@ package com.github.floshdev.producerconsumer.model;
 
 import java.util.LinkedList;
 
-public class OrderQueue {
+public class OrderBuffer {
 	
 	private LinkedList<Item> queue;
 
-	public OrderQueue() {
+	public OrderBuffer() {
 		this.queue = new LinkedList<Item>();
 	}
 	

@@ -7,10 +7,10 @@ public class Producer {
 	
 	private final int idProducer;
 	private int itemCounter;
-	private final OrderQueue queue;
+	private final OrderBuffer queue;
 	private final Random random;
 	
-	public Producer(int idProducer, OrderQueue queue) {
+	public Producer(int idProducer, OrderBuffer queue) {
 		this.idProducer = idProducer;
 		this.itemCounter = 0;
 		this.queue = queue;
