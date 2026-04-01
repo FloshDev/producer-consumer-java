@@ -27,6 +27,7 @@ public class Producer {
 	
 	public void enqueueItem() {
 		Item item = generateItem();
+		System.out.println("Producer " + idProducer + " ha prodotto: " + item);
 		queue.enqueue(item);
 	}
 

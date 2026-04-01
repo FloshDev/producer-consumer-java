@@ -11,8 +11,8 @@ l'applicazione Java e la rende utilizzabile a scopo didattico per spiegare il pr
 in modo visivo e interattivo.
 
 ## Fasi di sviluppo
-- **Fase 1** — sequenziale, niente thread. In corso.
-- **Fase 2** — concorrenza con pattern Monitor (`synchronized`, `wait`/`notify` con `while` non `if`), seguendo le dispense di Azzolini/Lavazza.
+- **Fase 1** — sequenziale, niente thread. Completata.
+- **Fase 2** — concorrenza con pattern Monitor (`synchronized`, `wait`/`notify` con `while` non `if`), seguendo le dispense di Azzolini/Lavazza. Prossima.
 - **Fase 3** — TUI Python che wrappa l'output Java.
 
 ## Struttura package
@@ -42,8 +42,10 @@ Costruttore senza parametri. Metodi: `enqueue(Item)`, `dequeue()` restituisce `I
 ### `producer/Producer`
 Campi `final int idProducer`, `int itemCounter`, `final OrderBuffer buffer`, `final Random random`.
 Costruttore riceve `idProducer` e `buffer`.
-- `generateItem()` — privato, incrementa `itemCounter`, genera peso random tra 0.5 e 50.0, coordinate random 0–99, restituisce `Item`.
-- `enqueueItem()` — pubblico, chiama `generateItem()` e passa il risultato a `buffer.enqueue()`.
+- `generateItem()` — privato, incrementa `itemCounter`, genera peso random tra 0.5 e 50.0,
+  coordinate random 0–99, restituisce `Item`.
+- `enqueueItem()` — pubblico, chiama `generateItem()`, passa il risultato a `buffer.enqueue()`,
+  stampa l'item prodotto.
 
 ### `consumer/Consumer`
 Campi `final int idConsumer`, `final OrderBuffer buffer`.
@@ -52,16 +54,30 @@ Costruttore riceve `idConsumer` e `buffer`.
   e stampa. Se vuoto stampa avviso. In Fase 2 il ramo "buffer vuoto" diventerà `wait()`
   dentro `while`.
 
-## Prossimo passo
-Classe `Simulation` nel package `logic`. Espone `run(int n)`. Il `main` sta in una
-classe separata nel package `cli`, legge N da input utente e chiama `simulation.run(n)`.
-Buffer illimitato in Fase 1 — la scelta limitato/illimitato è rinviata alla Fase 2.
+### `logic/Simulation`
+Campi `final OrderBuffer buffer`, `final Producer producer`, `final Consumer consumer`.
+Costruttore senza parametri: crea il buffer, istanzia producer (id=1) e consumer (id=1)
+passando il buffer a entrambi.
+- `run(int n)` — ciclo di N produzioni seguito da ciclo di N consumi.
+
+### `cli/Main`
+Contiene il `main`. Legge N da input utente tramite `Scanner`, istanzia `Simulation`,
+chiama `simulation.run(n)`.
 
 ## Decisioni di design
 - `main` separato da `Simulation` per responsabilità singola e riusabilità in Fase 3.
 - `run(int n)` invece di N nel costruttore: `Simulation` è un motore riutilizzabile.
 - Buffer illimitato in Fase 1: la capacità massima è rilevante solo con `wait`/`notify`.
 - `OrderBuffer` e non `OrderQueue`: il nome riflette il ruolo (buffer condiviso), non la struttura interna.
+- Un solo producer e un solo consumer in Fase 1: più entità hanno senso solo in Fase 2
+  quando l'accesso concorrente al buffer diventa il problema da risolvere.
+
+## Prossimo passo
+Fase 2 — introdurre la concorrenza con il pattern Monitor.
+- `Producer` e `Consumer` estendono `Thread` (o implementano `Runnable`).
+- `OrderBuffer` diventa un monitor: metodi `synchronized`, `wait()`/`notify()` dentro `while`.
+- Il buffer avrà una capacità massima configurabile dall'utente.
+- `Simulation` gestirà l'avvio e il join dei thread.
 
 ## Fonti
 - Dispense Azzolini Riccardo 2020 (appunti corso Lavazza, Università degli Studi dell'Insubria)
