@@ -5,21 +5,32 @@ import java.util.LinkedList;
 public class OrderBuffer {
 	
 	private LinkedList<Item> queue;
+	private final int size;
+	private int nItem;
 
-	public OrderBuffer() {
+	public OrderBuffer(int size) {
 		this.queue = new LinkedList<Item>();
+		this.size = size;
+		this.nItem = 0;
 	}
 	
-	public void enqueue(Item item) {
+	public synchronized void enqueue(Item item) throws InterruptedException {
+		while(nItem == size) {
+			wait();
+		}
 		queue.addLast(item);
+		nItem++;
+		notify();
 	}
 	
-	public Item dequeue() {
-		return queue.removeFirst();
-	}
-	
-	public boolean isEmpty() {
-		return queue.isEmpty();
+	public synchronized Item dequeue() throws InterruptedException {
+		while(nItem == 0) {
+			wait();
+		}
+		Item item = queue.removeFirst();
+		nItem--;
+		notify();
+		return item;
 	}
 	
 }
