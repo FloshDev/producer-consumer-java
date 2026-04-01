@@ -3,7 +3,7 @@ package com.github.floshdev.producerconsumer.producer;
 import com.github.floshdev.producerconsumer.model.*;
 import java.util.Random;
 
-public class Producer {
+public class Producer extends Thread {
 	
 	private final int idProducer;
 	private int itemCounter;
@@ -25,10 +25,21 @@ public class Producer {
 		return new Item(itemCounter, weight, origin, destination);
 	}
 	
-	public void enqueueItem() {
+	public void enqueueItem() throws InterruptedException {
 		Item item = generateItem();
 		System.out.println("Producer " + idProducer + " ha prodotto: " + item);
 		queue.enqueue(item);
+	}
+	
+	@Override
+	public void run() {
+		while(true) {
+			try {
+				enqueueItem();
+			} catch (InterruptedException e) {
+				break;
+			}
+		}
 	}
 
 }
