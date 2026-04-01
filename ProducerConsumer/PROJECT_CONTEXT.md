@@ -12,7 +12,7 @@ in modo visivo e interattivo.
 
 ## Fasi di sviluppo
 - **Fase 1** — sequenziale, niente thread. Completata.
-- **Fase 2** — concorrenza con pattern Monitor (`synchronized`, `wait`/`notify` con `while` non `if`), seguendo le dispense di Azzolini/Lavazza. Prossima.
+- **Fase 2** — concorrenza con pattern Monitor (`synchronized`, `wait`/`notify` con `while` non `if`), seguendo le dispense di Azzolini/Lavazza. In corso.
 - **Fase 3** — TUI Python che wrappa l'output Java.
 
 ## Struttura package
@@ -34,35 +34,33 @@ Campi `final int idItem`, `float weight`, `Coordinate origin`, `Coordinate desti
 Costruttore, getter (`getId()` restituisce `idItem`), `toString()` restituisce `"ID Item: " + idItem`.
 
 ### `model/OrderBuffer`
-Buffer condiviso tra producer e consumer. Campo `private LinkedList<Item> queue`.
-Costruttore senza parametri. Metodi: `enqueue(Item)`, `dequeue()` restituisce `Item`,
-`isEmpty()` restituisce `boolean`. In Fase 2 diventerà un monitor con metodi
-`synchronized` e `wait()`/`notify()` dentro `while`.
+Buffer condiviso, implementato come monitor. Campi: `private LinkedList<Item> queue`,
+`private final int size`, `private int nItem`. Costruttore riceve `size`.
+Metodi `enqueue(Item)` e `dequeue()` sono `synchronized`, usano `while` + `wait()` + `notify()`.
+`isEmpty()` rimosso. Entrambi i metodi propagano `throws InterruptedException`.
 
 ### `producer/Producer`
-Campi `final int idProducer`, `int itemCounter`, `final OrderBuffer buffer`, `final Random random`.
-Costruttore riceve `idProducer` e `buffer`.
+Campi `final int idProducer`, `int itemCounter`, `final OrderBuffer queue`, `final Random random`.
+Costruttore riceve `idProducer` e `queue`. Estende `Thread`.
 - `generateItem()` — privato, incrementa `itemCounter`, genera peso random tra 0.5 e 50.0,
   coordinate random 0–99, restituisce `Item`.
-- `enqueueItem()` — pubblico, chiama `generateItem()`, passa il risultato a `buffer.enqueue()`,
-  stampa l'item prodotto.
+- `enqueueItem()` — pubblico, chiama `generateItem()`, stampa l'item, chiama `queue.enqueue()`.
+  Propaga `throws InterruptedException`.
+- `run()` — chiama `enqueueItem()` in `while(true)`, termina su `InterruptedException` con `break`.
 
 ### `consumer/Consumer`
-Campi `final int idConsumer`, `final OrderBuffer buffer`.
-Costruttore riceve `idConsumer` e `buffer`.
-- `dequeueItem()` — pubblico, controlla `isEmpty()` prima di estrarre. Se non vuoto estrae
-  e stampa. Se vuoto stampa avviso. In Fase 2 il ramo "buffer vuoto" diventerà `wait()`
-  dentro `while`.
+Campi `final int idConsumer`, `final OrderBuffer queue`. Costruttore riceve `idConsumer` e `queue`.
+Estende `Thread`.
+- `dequeueItem()` — pubblico, chiama `queue.dequeue()`, salva in `Item item`, stampa.
+  Propaga `throws InterruptedException`.
+- `run()` — chiama `dequeueItem()` in `while(true)`, termina su `InterruptedException` con `break`.
 
 ### `logic/Simulation`
-Campi `final OrderBuffer buffer`, `final Producer producer`, `final Consumer consumer`.
-Costruttore senza parametri: crea il buffer, istanzia producer (id=1) e consumer (id=1)
-passando il buffer a entrambi.
-- `run(int n)` — ciclo di N produzioni seguito da ciclo di N consumi.
+Da riscrivere per Fase 2. Attualmente ancora in forma Fase 1.
 
 ### `cli/Main`
 Contiene il `main`. Legge N da input utente tramite `Scanner`, istanzia `Simulation`,
-chiama `simulation.run(n)`.
+chiama `simulation.run(n)`. Da aggiornare per leggere anche la dimensione del buffer.
 
 ## Decisioni di design
 - `main` separato da `Simulation` per responsabilità singola e riusabilità in Fase 3.
@@ -71,13 +69,15 @@ chiama `simulation.run(n)`.
 - `OrderBuffer` e non `OrderQueue`: il nome riflette il ruolo (buffer condiviso), non la struttura interna.
 - Un solo producer e un solo consumer in Fase 1: più entità hanno senso solo in Fase 2
   quando l'accesso concorrente al buffer diventa il problema da risolvere.
+- `isEmpty()` rimosso da `OrderBuffer`: la guardia sullo stato del buffer appartiene
+  al monitor, non va esposta all'esterno.
 
 ## Prossimo passo
-Fase 2 — introdurre la concorrenza con il pattern Monitor.
-- `Producer` e `Consumer` estendono `Thread` (o implementano `Runnable`).
-- `OrderBuffer` diventa un monitor: metodi `synchronized`, `wait()`/`notify()` dentro `while`.
-- Il buffer avrà una capacità massima configurabile dall'utente.
-- `Simulation` gestirà l'avvio e il join dei thread.
+Riscrivere `Simulation` per Fase 2:
+- Il costruttore riceve `size` del buffer.
+- `run(int n)` avvia i thread con `start()`, aspetta che il producer abbia prodotto N item,
+  interrompe entrambi i thread con `interrupt()`, li aspetta con `join()`.
+- Aggiornare `Main` per leggere anche la dimensione del buffer dall'utente.
 
 ## Fonti
 - Dispense Azzolini Riccardo 2020 (appunti corso Lavazza, Università degli Studi dell'Insubria)
