@@ -9,12 +9,14 @@ public class Producer extends Thread {
 	private int itemCounter;
 	private final OrderBuffer queue;
 	private final Random random;
+	private final int nItem;
 	
-	public Producer(int idProducer, OrderBuffer queue) {
+	public Producer(int idProducer, OrderBuffer queue, int nItem) {
 		this.idProducer = idProducer;
 		this.itemCounter = 0;
 		this.queue = queue;
 		this.random = new Random();
+		this.nItem = nItem;
 	}
 	
 	private Item generateItem() {
@@ -33,7 +35,7 @@ public class Producer extends Thread {
 	
 	@Override
 	public void run() {
-		while(true) {
+		for(int i = 0; i < nItem; i++) {
 			try {
 				enqueueItem();
 			} catch (InterruptedException e) {
