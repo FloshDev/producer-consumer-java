@@ -6,14 +6,22 @@ Java 21, Eclipse, GitHub Desktop.
 
 ## Scopo
 Simulatore didattico del problema produttore-consumatore. Obiettivo finale: una TUI
-(Python, `prompt_toolkit` + `rich`, seguendo il design system in `CLAUDE.md`) che wrappa
-l'applicazione Java e la rende utilizzabile a scopo didattico per spiegare il problema
-in modo visivo e interattivo.
+(Python, `prompt_toolkit` + `rich`) che wrappa l'applicazione Java e la rende
+utilizzabile a scopo didattico per spiegare il problema in modo visivo e interattivo.
 
 ## Fasi di sviluppo
 - **Fase 1** — sequenziale, niente thread. Completata.
-- **Fase 2** — concorrenza con pattern Monitor (`synchronized`, `wait`/`notify` con `while` non `if`), seguendo le dispense di Azzolini/Lavazza. Completata.
-- **Fase 3** — TUI Python che wrappa l'output Java.
+- **Fase 2** — concorrenza con pattern Monitor (`synchronized`, `wait`/`notify` con
+  `while` non `if`), seguendo le dispense di Azzolini/Lavazza. Completata.
+- **Fase 3** — CLI Java interattiva con scenari didattici selezionabili dall'utente.
+  `Main` diventa un menu. Tre scenari previsti:
+  1. **Sequenziale** — nessun thread, producer e consumer si alternano in ordine.
+  2. **Race condition** — producer e consumer girano in parallelo senza sincronizzazione,
+     per mostrare il comportamento caotico o corrotto.
+  3. **Monitor** — concorrenza corretta con `synchronized`/`wait`/`notify`, buffer
+     rispettato, item tracciati.
+- **Fase 4** — TUI Python (`prompt_toolkit` + `rich`, seguendo il design system in
+  `CLAUDE.md` nel progetto `pydf-tool`) che wrappa e visualizza l'output Java.
 
 ## Struttura package
 ```
@@ -32,6 +40,11 @@ Campi `final int x, y`, costruttore, getter, `toString()` restituisce `Coordinat
 ### `model/Item`
 Campi `final int idItem`, `float weight`, `Coordinate origin`, `Coordinate destination`.
 Costruttore, getter (`getId()` restituisce `idItem`), `toString()` restituisce `"ID Item: " + idItem`.
+
+Note future: le coordinate origin/destination sono già presenti ma non valorizzate
+nell'output. In Fase 3 o 4 si potrebbe mostrare il "viaggio" dell'ordine — distanza
+euclidea tra origin e destination, rappresentazione visiva del percorso nella TUI.
+Questo renderebbe gli item concretamente significativi invece di semplici id numerici.
 
 ### `model/OrderBuffer`
 Buffer condiviso, implementato come monitor. Campi: `private LinkedList<Item> queue`,
@@ -73,7 +86,7 @@ Contiene il `main`. Legge `size` e `nItem` dall'utente tramite `Scanner`, istanz
 Propaga `throws InterruptedException`.
 
 ## Decisioni di design
-- `main` separato da `Simulation` per responsabilità singola e riusabilità in Fase 3.
+- `main` separato da `Simulation` per responsabilità singola e riusabilità in Fase 4.
 - `nItem` passato al costruttore di `Simulation` e da lì a `Producer`: il producer si
   ferma da solo, evitando la race condition sulla terminazione.
 - `Simulation.run()` senza parametri: N è già nel producer, `run()` si occupa solo del
@@ -81,15 +94,20 @@ Propaga `throws InterruptedException`.
 - Buffer illimitato in Fase 1: la capacità massima è rilevante solo con `wait`/`notify`.
 - `OrderBuffer` e non `OrderQueue`: il nome riflette il ruolo (buffer condiviso), non
   la struttura interna.
-- Un solo producer e un solo consumer per semplicità; più entità sono possibili in futuro.
+- Un solo producer e un solo consumer per semplicità; più entità configurabili in Fase 3.
 - `isEmpty()` rimosso da `OrderBuffer`: la guardia sullo stato del buffer appartiene
   al monitor, non va esposta all'esterno.
 - `totItem` in `OrderBuffer` conta il totale degli item inseriti dall'inizio, distinto
   da `nItem` che conta solo quelli attualmente nel buffer.
 
-## Prossimo passo
-Da decidere. Ipotesi in discussione: aggiungere una modalità rapida/casuale in cui
-`size` e `nItem` vengono generati casualmente senza input utente.
+## Prossimo passo — Fase 3
+Trasformare `Main` in un menu interattivo con tre scenari selezionabili.
+Prima di scrivere codice, ragionare sull'architettura:
+- Lo scenario race condition richiede una versione di `OrderBuffer` senza
+  sincronizzazione — classe separata o flag nel costruttore?
+- Più producer e consumer configurabili dall'utente cambiano `Simulation`.
+- Le coordinate degli item possono essere valorizzate nell'output di Fase 3
+  mostrando origin, destination e distanza euclidea per ogni ordine consegnato.
 
 ## Fonti
 - Dispense Azzolini Riccardo 2020 (appunti corso Lavazza, Università degli Studi dell'Insubria)
@@ -97,8 +115,8 @@ Da decidere. Ipotesi in discussione: aggiungere una modalità rapida/casuale in 
 - Design system TUI: `CLAUDE.md` nel progetto `pydf-tool`
 
 ## Approccio didattico
-Il modello AI guida senza produrre codice già pronto,
-salvo blocco esplicito dello studente. In quel caso fornisce il codice con spiegazione
-riga per riga. Lo studente riscrive sempre a mano in Eclipse — mai copia-incolla.
-Le decisioni di design vengono ragionate prima di scrivere codice.
-Fonte autoritativa per le scelte del corso: indicazioni esplicite di Lavazza → dispense → libro.
+Il modello AI guida senza produrre codice già pronto, salvo blocco esplicito dello
+studente. In quel caso fornisce il codice con spiegazione riga per riga. Lo studente
+riscrive sempre a mano in Eclipse — mai copia-incolla. Le decisioni di design vengono
+ragionate prima di scrivere codice. Fonte autoritativa per le scelte del corso:
+indicazioni esplicite di Lavazza → dispense → libro.

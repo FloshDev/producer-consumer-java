@@ -1,44 +1,32 @@
 # producer-consumer-java
 
-A didactic Java simulator of the producer-consumer problem, built for the
+A didactic simulator of the producer-consumer problem, built for the
 Concurrent Programming course at Università degli Studi dell'Insubria.
 
-## Overview
+## What is this
 
-The application simulates a shipping order system where producers generate
-orders and consumers process them through a shared buffer. The project is
-structured in three phases of increasing complexity.
+The producer-consumer problem is a classic concurrency challenge: one or more
+producers generate data and place it in a shared buffer, while one or more
+consumers retrieve and process it. The difficulty lies in coordinating access
+to the buffer — preventing overwrites, avoiding reads from an empty buffer,
+and ensuring no data is lost.
 
-## Phases
+This application makes that problem tangible. It simulates a shipping order
+system where producers generate orders and consumers process them. Users can
+select different scenarios — sequential execution, unsynchronized concurrency,
+and monitor-based concurrency — and directly observe how each behaves.
 
-**Phase 1 — Sequential**  
-Single-threaded simulation. Producer fills the buffer, consumer empties it.
-No concurrency. Completed.
+## Goals
 
-**Phase 2 — Concurrent**  
-Producer and consumer run as parallel threads. The shared buffer is implemented
-as a Monitor: all access is synchronized, and threads block and wake via
-`wait()`/`notify()`. The buffer has a configurable maximum capacity. Completed.
-
-**Phase 3 — Interactive TUI**  
-A Python wrapper built with `prompt_toolkit` and `rich` will provide an
-interactive terminal interface to configure and visualize the simulation.
-In progress.
+- Show the difference between sequential and concurrent execution
+- Demonstrate what goes wrong without synchronization
+- Show how the Monitor pattern solves the problem correctly
+- Make abstract concepts observable through a concrete, running simulation
 
 ## Usage
 
-Run `Main` in Eclipse or from the command line. The program will ask for:
-- Buffer capacity
-- Number of items to produce
-
-## Structure
-```
-com.github.floshdev.producerconsumer.model      — Item, Coordinate, OrderBuffer
-com.github.floshdev.producerconsumer.producer   — Producer
-com.github.floshdev.producerconsumer.consumer   — Consumer
-com.github.floshdev.producerconsumer.logic      — Simulation
-com.github.floshdev.producerconsumer.cli        — Main
-```
+Run `Main` in Eclipse or from the command line and select a scenario from
+the interactive menu.
 
 ## Requirements
 
