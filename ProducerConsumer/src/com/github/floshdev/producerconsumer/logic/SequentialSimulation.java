@@ -4,24 +4,25 @@ import com.github.floshdev.producerconsumer.model.Buffer;
 import com.github.floshdev.producerconsumer.producer.Producer;
 import com.github.floshdev.producerconsumer.consumer.Consumer;
 
-public class Simulation {
+public class SequentialSimulation {
 	
 	private final Producer producer;
 	private final Consumer consumer;
+	private final int nItem;
 	
-	public Simulation(Buffer buffer, int nItem) {
+	public SequentialSimulation(Buffer buffer, int nItem) {
 		this.producer = new Producer(1, buffer, nItem);
 		this.consumer = new Consumer(1, buffer);
+		this.nItem = nItem;
 	}
 	
-	public void run() throws InterruptedException {
-		producer.start();
-		consumer.start();
-		
-		producer.join();
-		
-		consumer.interrupt();
-		consumer.join();
+	public void sequentialRun() {
+		for(int i = 0; i < nItem; i++) {
+			try {
+				producer.enqueueItem();
+				consumer.dequeueItem();
+			} catch (InterruptedException e) {}
+		}
 	}
 
 }

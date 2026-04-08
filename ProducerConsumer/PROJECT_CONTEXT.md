@@ -82,7 +82,9 @@ Estende `Thread`. Il campo `queue` è ora di tipo `Buffer` (interfaccia).
   Il consumer gira finché `Simulation` lo interrompe con `interrupt()`.
 
 ### `logic/Simulation`
-Campi `final Buffer buffer`, `final Producer producer`, `final Consumer consumer`.
+Campi `final Producer producer`, `final Consumer consumer`.
+Nota: il campo `buffer` è stato rimosso perché ridondante — viene passato direttamente
+a `Producer` e `Consumer` nel costruttore e non serve tenerlo come campo dell'oggetto.
 Costruttore riceve `Buffer buffer` e `int nItem`: il buffer arriva già costruito
 dall'esterno, `Simulation` non sa quale implementazione concreta sta usando.
 Istanzia producer (id=1, con `nItem`) e consumer (id=1).
@@ -90,9 +92,25 @@ Istanzia producer (id=1, con `nItem`) e consumer (id=1).
   interrompe il consumer con `consumer.interrupt()`, aspetta il consumer con `consumer.join()`.
   Propaga `throws InterruptedException`.
 
+### `logic/SequentialSimulation`
+Campi `final Producer producer`, `final Consumer consumer`, `final int nItem`.
+Nota: il campo `buffer` è stato rimosso per la stessa ragione di `Simulation`.
+Costruttore riceve `Buffer buffer` e `int nItem`. Usa `UnsynchronizedOrderBuffer`
+come buffer — `OrderBuffer` userebbe `wait()` che in assenza di thread blocca il
+programma per sempre.
+- `sequentialRun()` — `for` da 0 a `nItem`, chiama `producer.enqueueItem()` poi
+  `consumer.dequeueItem()` in sequenza. `InterruptedException` catturata internamente
+  con `try/catch` — non può verificarsi in contesto sequenziale, la firma resta pulita.
+
 ### `cli/Main`
 Da aggiornare nella Fase 3. Attualmente legge `size` e `nItem` tramite `Scanner`
-e avvia `Simulation`. Diventerà minimale: istanzia `Menu` e la delega.
+e avvia `Simulation`. Diventerà minimale: chiama `Menu.launch()` e nient'altro.
+
+### `cli/Menu`
+Da implementare. Metodo statico `launch()`. Gestisce tutto il flusso interattivo:
+`Scanner` interno, `do-while` per la scelta dello scenario con validazione,
+lettura di `size` e `nItem`, creazione del buffer corretto, istanziazione e avvio
+della simulation appropriata.
 
 ## Decisioni di design
 - `main` separato da `Simulation` per responsabilità singola e riusabilità in Fase 4.
@@ -109,24 +127,34 @@ e avvia `Simulation`. Diventerà minimale: istanzia `Menu` e la delega.
   da `nItem` che conta solo quelli attualmente nel buffer.
 - Interfaccia `Buffer` nel package `model`: il contratto è parte del dominio, non
   dell'infrastruttura. Le implementazioni concrete stanno nello stesso package.
-- `Simulation` riceve `Buffer` dall'esterno: chi crea il buffer è `Main` (tramite `Menu`),
-  in base allo scenario scelto. Principio di sostituzione applicato.
+- `Simulation` riceve `Buffer` dall'esterno: chi crea il buffer è `Menu`, in base
+  allo scenario scelto. Principio di sostituzione applicato.
 - `Producer` e `Consumer` lavorano su `Buffer` (interfaccia): non conoscono
   l'implementazione concreta, funzionano con qualsiasi buffer.
 - `getDistance()` in `Item`: la distanza è una proprietà dell'item stesso, non
   dell'azione di consegna. Il `Consumer` usa il metodo per costruire l'output.
-- `Menu` nel package `cli`: gestisce interazione utente, creazione del buffer corretto
-  e avvio di `Simulation`. `Main` resta minimale e la delega.
+- Campo `buffer` rimosso da `Simulation` e `SequentialSimulation`: viene passato
+  direttamente a `Producer` e `Consumer` nel costruttore, tenerlo come campo
+  dell'oggetto era ridondante e generava warning.
+- `SequentialSimulation` usa `UnsynchronizedOrderBuffer`: `OrderBuffer` con `wait()`
+  in assenza di thread causerebbe un deadlock immediato.
+- `Menu` nel package `cli`: metodo statico `launch()`, gestisce interazione utente,
+  creazione del buffer corretto e avvio della simulation. `Main` resta minimale.
+- `do-while` in `Menu` per la scelta dello scenario: garantisce che le opzioni vengano
+  mostrate almeno una volta e che l'input venga richiesto finché non è valido.
 
 ## Prossimo passo — Fase 3
 Implementare `Menu` nel package `cli`. Flusso minimo:
-1. Mostrare le tre opzioni di scenario.
-2. Leggere la scelta dell'utente.
-3. Chiedere `size` e `nItem`.
-4. Creare il buffer corretto (`OrderBuffer` per monitor, `UnsynchronizedOrderBuffer`
-   per race condition).
-5. Istanziare `Simulation` e avviarla.
-Dopo il flusso minimo funzionante: aggiungere titolo, descrizione teorica, help.
+1. `do-while` che mostra le tre opzioni e legge la scelta, ripete su input non valido.
+2. Leggere `size` e `nItem`.
+3. In base alla scelta: creare il buffer corretto, istanziare la simulation giusta,
+   avviarla.
+   - Scenario 1 (sequenziale): `UnsynchronizedOrderBuffer` + `SequentialSimulation`.
+   - Scenario 2 (race condition): `UnsynchronizedOrderBuffer` + `Simulation`.
+   - Scenario 3 (monitor): `OrderBuffer` + `Simulation`.
+4. Aggiornare `Main` per chiamare solo `Menu.launch()`.
+Dopo il flusso minimo funzionante: aggiungere titolo, descrizione teorica degli
+scenari, gestione input non numerico.
 
 ## Fonti
 - Dispense Azzolini Riccardo 2020 (appunti corso Lavazza, Università degli Studi dell'Insubria)
