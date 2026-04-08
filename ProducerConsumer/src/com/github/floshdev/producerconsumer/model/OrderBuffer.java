@@ -2,7 +2,7 @@ package com.github.floshdev.producerconsumer.model;
 
 import java.util.LinkedList;
 
-public class OrderBuffer {
+public class OrderBuffer implements Buffer{
 	
 	private LinkedList<Item> queue;
 	private final int size;

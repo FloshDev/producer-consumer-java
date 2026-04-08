@@ -5,9 +5,9 @@ import com.github.floshdev.producerconsumer.model.*;
 public class Consumer extends Thread {
 	
 	private final int idConsumer;
-	private final OrderBuffer queue;
+	private final Buffer queue;
 	
-	public Consumer(int idConsumer, OrderBuffer queue) {
+	public Consumer(int idConsumer, Buffer queue) {
 		this.idConsumer = idConsumer;
 		this.queue = queue;
 	}

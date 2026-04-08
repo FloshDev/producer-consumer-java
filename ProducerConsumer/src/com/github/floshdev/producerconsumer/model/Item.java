@@ -30,6 +30,11 @@ public class Item {
 		return destination;
 	}
 	
+	public double getDistance() {
+		return Math.sqrt(Math.pow((origin.getX() - destination.getX()),2) 
+				+ Math.pow((origin.getY() - destination.getY()), 2));
+	}
+	
 	@Override
 	public String toString() {
 		return "ID Item: " + idItem;

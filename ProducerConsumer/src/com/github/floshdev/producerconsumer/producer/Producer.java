@@ -7,11 +7,11 @@ public class Producer extends Thread {
 	
 	private final int idProducer;
 	private int itemCounter;
-	private final OrderBuffer queue;
+	private final Buffer queue;
 	private final Random random;
 	private final int nItem;
 	
-	public Producer(int idProducer, OrderBuffer queue, int nItem) {
+	public Producer(int idProducer, Buffer queue, int nItem) {
 		this.idProducer = idProducer;
 		this.itemCounter = 0;
 		this.queue = queue;
