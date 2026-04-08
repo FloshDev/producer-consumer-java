@@ -1,17 +1,17 @@
 package com.github.floshdev.producerconsumer.logic;
 
-import com.github.floshdev.producerconsumer.model.OrderBuffer;
+import com.github.floshdev.producerconsumer.model.Buffer;
 import com.github.floshdev.producerconsumer.producer.Producer;
 import com.github.floshdev.producerconsumer.consumer.Consumer;
 
 public class Simulation {
 	
-	private final OrderBuffer buffer;
+	private final Buffer buffer;
 	private final Producer producer;
 	private final Consumer consumer;
 	
-	public Simulation(int size, int nItem) {
-		this.buffer = new OrderBuffer(size);
+	public Simulation(Buffer buffer, int nItem) {
+		this.buffer = buffer;
 		this.producer = new Producer(1, buffer, nItem);
 		this.consumer = new Consumer(1, buffer);
 	}
