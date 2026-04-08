@@ -14,12 +14,12 @@ utilizzabile a scopo didattico per spiegare il problema in modo visivo e interat
 - **Fase 2** — concorrenza con pattern Monitor (`synchronized`, `wait`/`notify` con
   `while` non `if`), seguendo le dispense di Azzolini/Lavazza. Completata.
 - **Fase 3** — CLI Java interattiva con scenari didattici selezionabili dall'utente.
-  Architettura definita, implementazione in corso. Tre scenari previsti:
+  Flusso minimo completato e funzionante. Tre scenari implementati:
   1. **Sequenziale** — nessun thread, producer e consumer si alternano in ordine.
   2. **Race condition** — producer e consumer girano in parallelo senza sincronizzazione,
      per mostrare il comportamento caotico o corrotto.
   3. **Monitor** — concorrenza corretta con `synchronized`/`wait`/`notify`, buffer
-     rispettato, item tracciati.
+     rispettato, tutti gli item prodotti vengono consumati.
 - **Fase 4** — TUI Python (`prompt_toolkit` + `rich`, seguendo il design system in
   `CLAUDE.md` nel progetto `pydf-tool`) che wrappa e visualizza l'output Java.
 
@@ -44,126 +44,131 @@ Metodo `getDistance()` restituisce `double` — distanza euclidea tra `origin` e
 calcolata con `Math.sqrt` sulle differenze di x e y.
 
 ### `model/Buffer`
-Interfaccia. Dichiara `void enqueue(Item item) throws InterruptedException` e
-`Item dequeue() throws InterruptedException`. Contratto comune per tutte le
-implementazioni di buffer — permette a `Producer`, `Consumer` e `Simulation` di
-lavorare senza conoscere l'implementazione concreta.
+Interfaccia. Dichiara:
+- `void enqueue(Item item) throws InterruptedException`
+- `Item dequeue() throws InterruptedException`
+- `boolean isEmpty()`
+Contratto comune per tutte le implementazioni di buffer.
 
 ### `model/OrderBuffer`
 Implementa `Buffer`. Buffer condiviso con pattern Monitor. Campi: `private LinkedList<Item> queue`,
-`private final int size`, `private int nItem`, `private int totItem`.
-Costruttore riceve `size`. Metodi `enqueue(Item)` e `dequeue()` sono `synchronized`,
-usano `while` + `wait()` + `notify()`. Entrambi propagano `throws InterruptedException`.
-Getter `getTotItem()` è `synchronized`.
+`private final int size`, `private int count`, `private int totItem`.
+Nota: il campo che conta gli item attualmente nel buffer si chiama `count` (rinominato da `nItem`)
+per distinguerlo dal campo `nItem` di `Producer`.
+Costruttore riceve `size`. Metodi `enqueue(Item)`, `dequeue()`, `isEmpty()` e `getTotItem()`
+sono tutti `synchronized`. `enqueue` e `dequeue` usano `while` + `wait()` + `notify()`.
+`isEmpty()` restituisce `count == 0`.
 
 ### `model/UnsynchronizedOrderBuffer`
 Implementa `Buffer`. Stessa struttura di `OrderBuffer` ma senza `synchronized`,
-`wait`, `notify`. `enqueue` inserisce solo se `nItem < size`, altrimenti ignora.
-`dequeue` restituisce `null` se il buffer è vuoto. Usata nello scenario race condition
-per mostrare il comportamento caotico senza sincronizzazione.
+`wait`, `notify`. Campo `count` per gli item attuali nel buffer.
+`enqueue` inserisce solo se `count < size`, altrimenti ignora.
+`dequeue` restituisce `null` se il buffer è vuoto.
+`isEmpty()` restituisce `count == 0`.
+Usata negli scenari sequenziale e race condition.
 
 ### `producer/Producer`
 Campi `final int idProducer`, `int itemCounter`, `final Buffer queue`,
 `final Random random`, `final int nItem`. Costruttore riceve `idProducer`, `queue`, `nItem`.
-Estende `Thread`. Il campo `queue` è ora di tipo `Buffer` (interfaccia).
-- `generateItem()` — privato, incrementa `itemCounter`, genera peso random tra 0.5 e 50.0,
-  coordinate random 0–99, restituisce `Item`.
-- `enqueueItem()` — pubblico, chiama `generateItem()`, stampa l'item, chiama `queue.enqueue()`.
-  Propaga `throws InterruptedException`.
-- `run()` — `for` da 0 a `nItem`, chiama `enqueueItem()`, termina su `InterruptedException`
-  con `break`. Il producer si ferma da solo dopo N item.
+Estende `Thread`. Il campo `queue` è di tipo `Buffer` (interfaccia).
+- `generateItem()` — privato, genera item con peso random tra 0.5 e 50.0 e coordinate random 0-99.
+- `enqueueItem()` — pubblico, chiama `queue.enqueue(item)`, poi stampa "Producer N produces: ID Item: X".
+  La stampa avviene dopo `enqueue` per riflettere il momento in cui l'item e` effettivamente
+  entrato nel buffer. `Thread.sleep(500)` dopo la stampa per rallentare la produzione
+  e rendere visibile il riempimento del buffer. Propaga `throws InterruptedException`.
+- `run()` — `for` da 0 a `nItem`, chiama `enqueueItem()`, termina su `InterruptedException` con `break`.
 
 ### `consumer/Consumer`
 Campi `final int idConsumer`, `final Buffer queue`. Costruttore riceve `idConsumer`, `queue`.
-Estende `Thread`. Il campo `queue` è ora di tipo `Buffer` (interfaccia).
-- `dequeueItem()` — pubblico, chiama `queue.dequeue()`, salva in `Item item`, stampa.
-  Propaga `throws InterruptedException`.
+Estende `Thread`. Il campo `queue` e` di tipo `Buffer` (interfaccia).
+- `dequeueItem()` — pubblico, `Thread.sleep(1000)` prima di `queue.dequeue()` per
+  rallentare il consumo e rendere visibile l'attesa del producer. Stampa
+  "Consumer N consumed: ID Item: X | Distance: Y" con distanza a due decimali
+  tramite `String.format("%.2f", item.getDistance())`. Propaga `throws InterruptedException`.
 - `run()` — `while(true)`, chiama `dequeueItem()`, termina su `InterruptedException` con `break`.
-  Il consumer gira finché `Simulation` lo interrompe con `interrupt()`.
 
 ### `logic/Simulation`
-Campi `final Producer producer`, `final Consumer consumer`.
-Nota: il campo `buffer` è stato rimosso perché ridondante — viene passato direttamente
-a `Producer` e `Consumer` nel costruttore e non serve tenerlo come campo dell'oggetto.
-Costruttore riceve `Buffer buffer` e `int nItem`: il buffer arriva già costruito
-dall'esterno, `Simulation` non sa quale implementazione concreta sta usando.
-Istanzia producer (id=1, con `nItem`) e consumer (id=1).
-- `run()` — avvia entrambi i thread con `start()`, aspetta il producer con `producer.join()`,
-  interrompe il consumer con `consumer.interrupt()`, aspetta il consumer con `consumer.join()`.
+Campi `final Buffer buffer`, `final Producer producer`, `final Consumer consumer`.
+Il campo `buffer` e` presente — serve in `run()` per controllare `isEmpty()`
+prima di interrompere il consumer.
+Costruttore riceve `Buffer buffer` e `int nItem`.
+- `run()` — avvia entrambi i thread, aspetta il producer con `producer.join()`,
+  poi aspetta che il buffer sia vuoto con `while(!buffer.isEmpty()) { Thread.sleep(100); }`,
+  poi interrompe il consumer con `consumer.interrupt()`, poi aspetta con `consumer.join()`.
+  Questo garantisce che tutti gli item prodotti vengano consumati prima della terminazione.
   Propaga `throws InterruptedException`.
 
 ### `logic/SequentialSimulation`
 Campi `final Producer producer`, `final Consumer consumer`, `final int nItem`.
-Nota: il campo `buffer` è stato rimosso per la stessa ragione di `Simulation`.
-Costruttore riceve `Buffer buffer` e `int nItem`. Usa `UnsynchronizedOrderBuffer`
-come buffer — `OrderBuffer` userebbe `wait()` che in assenza di thread blocca il
-programma per sempre.
+Il campo `buffer` non e` presente — viene passato direttamente a `Producer` e `Consumer`
+nel costruttore e non serve tenerlo come campo.
+Costruttore riceve `Buffer buffer` e `int nItem`.
 - `sequentialRun()` — `for` da 0 a `nItem`, chiama `producer.enqueueItem()` poi
   `consumer.dequeueItem()` in sequenza. `InterruptedException` catturata internamente
-  con `try/catch` — non può verificarsi in contesto sequenziale, la firma resta pulita.
-
-### `cli/Main`
-Da aggiornare nella Fase 3. Attualmente legge `size` e `nItem` tramite `Scanner`
-e avvia `Simulation`. Diventerà minimale: chiama `Menu.launch()` e nient'altro.
+  con `try/catch` vuoto — non puo` verificarsi in contesto sequenziale.
 
 ### `cli/Menu`
-Da implementare. Metodo statico `launch()`. Gestisce tutto il flusso interattivo:
-`Scanner` interno, `do-while` per la scelta dello scenario con validazione,
-lettura di `size` e `nItem`, creazione del buffer corretto, istanziazione e avvio
-della simulation appropriata.
+Classe con metodo statico `launch()`. `Scanner` interno.
+Flusso: `do-while` con `switch` accorpato sui casi 1/2/3 per la validazione della scelta,
+lettura di `nItem` e `size`, secondo `switch` che crea il buffer corretto e avvia
+la simulation giusta:
+- Scenario 1: `UnsynchronizedOrderBuffer` + `SequentialSimulation.sequentialRun()`
+- Scenario 2: `UnsynchronizedOrderBuffer` + `Simulation.run()`
+- Scenario 3: `OrderBuffer` + `Simulation.run()`
+Nessun `default` nel secondo `switch` — la validazione nel `do-while` garantisce
+che `option` sia sempre 1, 2 o 3. Dichiara `throws InterruptedException`.
+
+### `cli/Main`
+Minimale. Chiama solo `Menu.launch()`. Dichiara `throws InterruptedException`.
 
 ## Decisioni di design
-- `main` separato da `Simulation` per responsabilità singola e riusabilità in Fase 4.
-- `nItem` passato al costruttore di `Simulation` e da lì a `Producer`: il producer si
+- `main` separato da `Simulation` per responsabilita` singola e riusabilita` in Fase 4.
+- `nItem` passato al costruttore di `Simulation` e da li` a `Producer`: il producer si
   ferma da solo, evitando la race condition sulla terminazione.
-- `Simulation.run()` senza parametri: N è già nel producer, `run()` si occupa solo del
+- `Simulation.run()` senza parametri: N e` gia` nel producer, `run()` si occupa solo del
   ciclo di vita dei thread.
-- Buffer illimitato in Fase 1: la capacità massima è rilevante solo con `wait`/`notify`.
+- Buffer illimitato in Fase 1: la capacita` massima e` rilevante solo con `wait`/`notify`.
 - `OrderBuffer` e non `OrderQueue`: il nome riflette il ruolo (buffer condiviso), non
   la struttura interna.
-- `isEmpty()` rimosso da `OrderBuffer`: la guardia sullo stato del buffer appartiene
-  al monitor, non va esposta all'esterno.
+- `isEmpty()` nell'interfaccia `Buffer`: serve a `Simulation` per sapere quando il
+  buffer e` svuotato prima di interrompere il consumer. La guardia interna del monitor
+  (`while(count == 0)`) rimane separata — `isEmpty()` e` esposto per coordinazione
+  esterna, non per logica interna.
+- `count` in `OrderBuffer` e `UnsynchronizedOrderBuffer`: rinominato da `nItem` per
+  evitare ambiguita` con il campo `nItem` di `Producer`.
 - `totItem` in `OrderBuffer` conta il totale degli item inseriti dall'inizio, distinto
-  da `nItem` che conta solo quelli attualmente nel buffer.
-- Interfaccia `Buffer` nel package `model`: il contratto è parte del dominio, non
-  dell'infrastruttura. Le implementazioni concrete stanno nello stesso package.
-- `Simulation` riceve `Buffer` dall'esterno: chi crea il buffer è `Menu`, in base
-  allo scenario scelto. Principio di sostituzione applicato.
-- `Producer` e `Consumer` lavorano su `Buffer` (interfaccia): non conoscono
-  l'implementazione concreta, funzionano con qualsiasi buffer.
-- `getDistance()` in `Item`: la distanza è una proprietà dell'item stesso, non
-  dell'azione di consegna. Il `Consumer` usa il metodo per costruire l'output.
-- Campo `buffer` rimosso da `Simulation` e `SequentialSimulation`: viene passato
-  direttamente a `Producer` e `Consumer` nel costruttore, tenerlo come campo
-  dell'oggetto era ridondante e generava warning.
+  da `count` che conta solo quelli attualmente nel buffer.
+- Interfaccia `Buffer` nel package `model`: il contratto e` parte del dominio.
+- `Simulation` riceve `Buffer` dall'esterno e lo mantiene come campo: necessario per
+  il controllo `isEmpty()` in `run()`. Principio di sostituzione applicato.
+- `Producer` e `Consumer` lavorano su `Buffer` (interfaccia).
+- `getDistance()` in `Item`: proprieta` dell'item, usata dal `Consumer` per l'output.
+- Stampa del producer dopo `enqueue`: riflette il momento reale di inserimento nel buffer.
+- `Thread.sleep(500)` in `Producer`, `Thread.sleep(1000)` in `Consumer`: il consumer
+  e` piu` lento del doppio, rendendo visibile il riempimento del buffer e l'attesa del producer.
+- `while(!buffer.isEmpty()) { Thread.sleep(100); }` in `Simulation.run()`: garantisce
+  che tutti gli item vengano consumati prima della terminazione del consumer.
 - `SequentialSimulation` usa `UnsynchronizedOrderBuffer`: `OrderBuffer` con `wait()`
   in assenza di thread causerebbe un deadlock immediato.
-- `Menu` nel package `cli`: metodo statico `launch()`, gestisce interazione utente,
-  creazione del buffer corretto e avvio della simulation. `Main` resta minimale.
-- `do-while` in `Menu` per la scelta dello scenario: garantisce che le opzioni vengano
-  mostrate almeno una volta e che l'input venga richiesto finché non è valido.
+- `Menu` nel package `cli`: metodo statico `launch()`, gestisce tutto il flusso.
+- `do-while` in `Menu`: garantisce che le opzioni vengano mostrate almeno una volta.
+- `Main` minimale: chiama solo `Menu.launch()`.
 
-## Prossimo passo — Fase 3
-Implementare `Menu` nel package `cli`. Flusso minimo:
-1. `do-while` che mostra le tre opzioni e legge la scelta, ripete su input non valido.
-2. Leggere `size` e `nItem`.
-3. In base alla scelta: creare il buffer corretto, istanziare la simulation giusta,
-   avviarla.
-   - Scenario 1 (sequenziale): `UnsynchronizedOrderBuffer` + `SequentialSimulation`.
-   - Scenario 2 (race condition): `UnsynchronizedOrderBuffer` + `Simulation`.
-   - Scenario 3 (monitor): `OrderBuffer` + `Simulation`.
-4. Aggiornare `Main` per chiamare solo `Menu.launch()`.
-Dopo il flusso minimo funzionante: aggiungere titolo, descrizione teorica degli
-scenari, gestione input non numerico.
+## Prossimo passo — da decidere
+La Fase 3 ha il flusso minimo funzionante. Possibili estensioni prima di passare alla Fase 4:
+- Gestione input non numerico (attualmente crasha con `InputMismatchException`).
+- Descrizione testuale degli scenari prima dell'avvio.
+- Riepilogo finale (totale item prodotti/consumati, tempo di esecuzione).
+- Possibilita` di rieseguire senza riavviare il programma.
 
 ## Fonti
-- Dispense Azzolini Riccardo 2020 (appunti corso Lavazza, Università degli Studi dell'Insubria)
+- Dispense Azzolini Riccardo 2020 (appunti corso Lavazza, Universita` degli Studi dell'Insubria)
 - Libro: *Dai fondamenti agli oggetti*
 - Design system TUI: `CLAUDE.md` nel progetto `pydf-tool`
 
 ## Approccio didattico
-Il modello AI guida senza produrre codice già pronto, salvo blocco esplicito dello
+Il modello AI guida senza produrre codice gia` pronto, salvo blocco esplicito dello
 studente. In quel caso fornisce il codice con spiegazione riga per riga. Lo studente
 riscrive sempre a mano in Eclipse — mai copia-incolla. Le decisioni di design vengono
 ragionate prima di scrivere codice. Fonte autoritativa per le scelte del corso:
-indicazioni esplicite di Lavazza → dispense → libro.
+indicazioni esplicite di Lavazza -> dispense -> libro.

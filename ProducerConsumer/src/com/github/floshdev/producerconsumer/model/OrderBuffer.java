@@ -6,13 +6,13 @@ public class OrderBuffer implements Buffer{
 	
 	private LinkedList<Item> queue;
 	private final int size;
-	private int nItem;
+	private int count;
 	private int totItem;
 
 	public OrderBuffer(int size) {
 		this.queue = new LinkedList<Item>();
 		this.size = size;
-		this.nItem = 0;
+		this.count = 0;
 	}
 	
 	public synchronized int getTotItem() {
@@ -20,23 +20,27 @@ public class OrderBuffer implements Buffer{
 	}
 
 	public synchronized void enqueue(Item item) throws InterruptedException {
-		while(nItem == size) {
+		while(count == size) {
 			wait();
 		}
 		totItem++;
 		queue.addLast(item);
-		nItem++;
+		count++;
 		notify();
 	}
 	
 	public synchronized Item dequeue() throws InterruptedException {
-		while(nItem == 0) {
+		while(count == 0) {
 			wait();
 		}
 		Item item = queue.removeFirst();
-		nItem--;
+		count--;
 		notify();
 		return item;
+	}
+	
+	public synchronized boolean isEmpty() {
+		return count == 0;
 	}
 	
 }

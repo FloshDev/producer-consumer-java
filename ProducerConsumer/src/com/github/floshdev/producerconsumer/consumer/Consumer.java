@@ -13,8 +13,10 @@ public class Consumer extends Thread {
 	}
 	
 	public void dequeueItem() throws InterruptedException {
+		Thread.sleep(1000);
 		Item item = queue.dequeue();
-		System.out.println("Consumer " + idConsumer + " ha consumato: " + item);
+		System.out.println("Consumer " + idConsumer + " consumed: " + item 
+				+ " | Distance: " + String.format("%.2f", item.getDistance()));
 	}
 	
 	@Override

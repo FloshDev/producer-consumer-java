@@ -29,8 +29,9 @@ public class Producer extends Thread {
 	
 	public void enqueueItem() throws InterruptedException {
 		Item item = generateItem();
-		System.out.println("Producer " + idProducer + " ha prodotto: " + item);
 		queue.enqueue(item);
+		System.out.println("Producer " + idProducer + " produces: " + item);
+		Thread.sleep(500);
 	}
 	
 	@Override
