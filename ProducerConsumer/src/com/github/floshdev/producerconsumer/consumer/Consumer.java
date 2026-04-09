@@ -6,18 +6,25 @@ public class Consumer extends Thread {
 	
 	private final int idConsumer;
 	private final Buffer buffer;
+	private int itemConsumed;
 	
 	public Consumer(int idConsumer, Buffer queue) {
 		this.idConsumer = idConsumer;
 		this.buffer = queue;
+		this.itemConsumed = 0;
 	}
 	
+	public int getItemConsumed() {
+		return itemConsumed;
+	}
+
 	public void dequeueItem() throws InterruptedException {
 		Thread.sleep(1000);
 		Item item = buffer.dequeue();
 		if (item == null) {
 			System.out.println("Consumer " + idConsumer + " not consumed, because buffer is empty");
 		} else {
+			itemConsumed++;
 			System.out.println("Consumer " + idConsumer + " consumed: " + item + " | Distance: "
 					+ String.format("%.2f", item.getDistance()));
 		}

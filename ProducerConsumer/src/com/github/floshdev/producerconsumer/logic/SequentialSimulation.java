@@ -16,6 +16,10 @@ public class SequentialSimulation {
 		this.nItem = nItem;
 	}
 	
+	public Consumer getConsumer() {
+		return consumer;
+	}
+
 	public void sequentialRun() {
 		for(int i = 0; i < nItem; i++) {
 			try {

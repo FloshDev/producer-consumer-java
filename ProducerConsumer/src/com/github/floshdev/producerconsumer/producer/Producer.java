@@ -21,17 +21,16 @@ public class Producer extends Thread {
 	
 	private Item generateItem() {
 		itemCounter++;
-		float weight = 0.5f + random.nextFloat() * 49.5f;
 		Coordinate origin = new Coordinate(random.nextInt(100), random.nextInt(100));
 		Coordinate destination = new Coordinate(random.nextInt(100), random.nextInt(100));
-		return new Item(itemCounter, weight, origin, destination);
+		return new Item(itemCounter, origin, destination);
 	}
 	
 	public void enqueueItem() throws InterruptedException {
+		Thread.sleep(1000);
 		Item item = generateItem();
 		buffer.enqueue(item);
 		System.out.println("Producer " + idProducer + " produces: " + item);
-		Thread.sleep(500);
 	}
 	
 	@Override

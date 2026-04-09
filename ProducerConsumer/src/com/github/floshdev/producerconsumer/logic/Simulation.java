@@ -16,6 +16,10 @@ public class Simulation {
 		this.buffer = buffer;
 	}
 	
+	public Consumer getConsumer() {
+		return consumer;
+	}
+
 	public void execute() throws InterruptedException {
 		producer.start();
 		consumer.start();

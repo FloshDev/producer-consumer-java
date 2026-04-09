@@ -8,15 +8,21 @@ public class UnsynchronizedOrderBuffer implements Buffer{
 	private final int size;
 	private int count;
 	private int totItem;
+	private int itemLost;
 
 	public UnsynchronizedOrderBuffer(int size) {
 		this.queue = new LinkedList<Item>();
 		this.size = size;
 		this.count = 0;
+		this.itemLost = 0;
 	}
 	
 	public int getTotItem() {
 		return totItem;
+	}
+
+	public int getItemLost() {
+		return itemLost;
 	}
 
 	public void enqueue(Item item) throws InterruptedException {
@@ -24,6 +30,8 @@ public class UnsynchronizedOrderBuffer implements Buffer{
 			queue.addLast(item);
 			totItem++;
 			count++;
+		} else {
+			itemLost++;
 		}
 	}
 	
