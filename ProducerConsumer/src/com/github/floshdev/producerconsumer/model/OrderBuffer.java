@@ -4,7 +4,7 @@ import java.util.LinkedList;
 
 public class OrderBuffer implements Buffer{
 	
-	private LinkedList<Item> queue;
+	private final LinkedList<Item> queue;
 	private final int size;
 	private int count;
 	private int totItem;

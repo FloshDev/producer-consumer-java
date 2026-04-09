@@ -4,7 +4,7 @@ import java.util.LinkedList;
 
 public class UnsynchronizedOrderBuffer implements Buffer{
 	
-	private LinkedList<Item> queue;
+	private final LinkedList<Item> queue;
 	private final int size;
 	private int count;
 	private int totItem;
@@ -22,6 +22,7 @@ public class UnsynchronizedOrderBuffer implements Buffer{
 	public void enqueue(Item item) throws InterruptedException {
 		if(count < size) {
 			queue.addLast(item);
+			totItem++;
 			count++;
 		}
 	}

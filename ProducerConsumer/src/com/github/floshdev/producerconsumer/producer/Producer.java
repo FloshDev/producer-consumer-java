@@ -7,14 +7,14 @@ public class Producer extends Thread {
 	
 	private final int idProducer;
 	private int itemCounter;
-	private final Buffer queue;
+	private final Buffer buffer;
 	private final Random random;
 	private final int nItem;
 	
 	public Producer(int idProducer, Buffer queue, int nItem) {
 		this.idProducer = idProducer;
 		this.itemCounter = 0;
-		this.queue = queue;
+		this.buffer = queue;
 		this.random = new Random();
 		this.nItem = nItem;
 	}
@@ -29,7 +29,7 @@ public class Producer extends Thread {
 	
 	public void enqueueItem() throws InterruptedException {
 		Item item = generateItem();
-		queue.enqueue(item);
+		buffer.enqueue(item);
 		System.out.println("Producer " + idProducer + " produces: " + item);
 		Thread.sleep(500);
 	}

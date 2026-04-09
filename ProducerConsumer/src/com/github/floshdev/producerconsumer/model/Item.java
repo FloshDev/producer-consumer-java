@@ -3,7 +3,7 @@ package com.github.floshdev.producerconsumer.model;
 public class Item {
 
 	private final int idItem;
-	private final float weight;
+	private final double weight;
 	private final Coordinate origin;
 	private final Coordinate destination;
 	
@@ -18,7 +18,7 @@ public class Item {
 		return idItem;
 	}
 
-	public float getWeight() {
+	public double getWeight() {
 		return weight;
 	}
 

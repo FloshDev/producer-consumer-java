@@ -21,7 +21,9 @@ public class SequentialSimulation {
 			try {
 				producer.enqueueItem();
 				consumer.dequeueItem();
-			} catch (InterruptedException e) {}
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
 		}
 	}
 

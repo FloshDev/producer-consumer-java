@@ -52,16 +52,14 @@ public class Menu {
 			
 			case 2: UnsynchronizedOrderBuffer raceconditionBuffer = new UnsynchronizedOrderBuffer(size);
 					Simulation raceconditionSimulation = new Simulation(raceconditionBuffer, nItem);
-					raceconditionSimulation.run();
+					raceconditionSimulation.execute();
 					break;
 				
 			case 3: OrderBuffer monitorBuffer = new OrderBuffer(size);
 					Simulation monitorSimulation = new Simulation(monitorBuffer, nItem);
-					monitorSimulation.run();
+					monitorSimulation.execute();
 					break;		
 		}
-		
-		in.close();
 	}
 	
 }
