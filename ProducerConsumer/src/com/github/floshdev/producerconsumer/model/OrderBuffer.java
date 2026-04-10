@@ -26,7 +26,7 @@ public class OrderBuffer implements Buffer{
 		totItem++;
 		queue.addLast(item);
 		count++;
-		notify();
+		notifyAll();
 	}
 	
 	public synchronized Item dequeue() throws InterruptedException {
@@ -35,7 +35,7 @@ public class OrderBuffer implements Buffer{
 		}
 		Item item = queue.removeFirst();
 		count--;
-		notify();
+		notifyAll();
 		return item;
 	}
 	

@@ -1,7 +1,9 @@
 package com.github.floshdev.producerconsumer.cli;
 
 import java.util.Scanner;
+import java.util.ArrayList;
 import com.github.floshdev.producerconsumer.logic.Simulation;
+import com.github.floshdev.producerconsumer.consumer.Consumer;
 import com.github.floshdev.producerconsumer.logic.SequentialSimulation;
 import com.github.floshdev.producerconsumer.model.OrderBuffer;
 import com.github.floshdev.producerconsumer.model.UnsynchronizedOrderBuffer;
@@ -30,17 +32,15 @@ public class Menu {
                 "What size should the buffer be?"
             }, "Size:", 1, Integer.MAX_VALUE);
 
-            TuiRenderer.clearScreen();
-            TuiRenderer.printHeader("PRODUCER CONSUMER SIMULATOR");
-
             int itemLost = 0;
             int itemConsumed = 0;
             long elapsed = 0;
-
             long start = System.currentTimeMillis();
 
             switch (option) {
                 case 1:
+                    TuiRenderer.clearScreen();
+                    TuiRenderer.printHeader("PRODUCER CONSUMER SIMULATOR");
                     UnsynchronizedOrderBuffer sequentialBuffer = new UnsynchronizedOrderBuffer(size);
                     SequentialSimulation sequentialSimulation = new SequentialSimulation(sequentialBuffer, nItem);
                     sequentialSimulation.sequentialRun();
@@ -49,19 +49,27 @@ public class Menu {
                     itemConsumed = sequentialSimulation.getConsumer().getItemConsumed();
                     break;
                 case 2:
+                    int nProducerRace = readInt(in, new String[]{"How many producers?"}, "Producers:", 1, Integer.MAX_VALUE);
+                    int nConsumerRace = readInt(in, new String[]{"How many consumers?"}, "Consumers:", 1, Integer.MAX_VALUE);
+                    TuiRenderer.clearScreen();
+                    TuiRenderer.printHeader("PRODUCER CONSUMER SIMULATOR");
                     UnsynchronizedOrderBuffer raceconditionBuffer = new UnsynchronizedOrderBuffer(size);
-                    Simulation raceconditionSimulation = new Simulation(raceconditionBuffer, nItem);
+                    Simulation raceconditionSimulation = new Simulation(raceconditionBuffer, nProducerRace, nConsumerRace, nItem);
                     raceconditionSimulation.execute();
                     elapsed = System.currentTimeMillis() - start;
                     itemLost = raceconditionBuffer.getItemLost();
-                    itemConsumed = raceconditionSimulation.getConsumer().getItemConsumed();
+                    itemConsumed = getTotalConsumed(raceconditionSimulation.getConsumer());
                     break;
                 case 3:
+                    int nProducerMonitor = readInt(in, new String[]{"How many producers?"}, "Producers:", 1, Integer.MAX_VALUE);
+                    int nConsumerMonitor = readInt(in, new String[]{"How many consumers?"}, "Consumers:", 1, Integer.MAX_VALUE);
+                    TuiRenderer.clearScreen();
+                    TuiRenderer.printHeader("PRODUCER CONSUMER SIMULATOR");
                     OrderBuffer monitorBuffer = new OrderBuffer(size);
-                    Simulation monitorSimulation = new Simulation(monitorBuffer, nItem);
+                    Simulation monitorSimulation = new Simulation(monitorBuffer, nProducerMonitor, nConsumerMonitor, nItem);
                     monitorSimulation.execute();
                     elapsed = System.currentTimeMillis() - start;
-                    itemConsumed = monitorSimulation.getConsumer().getItemConsumed();
+                    itemConsumed = getTotalConsumed(monitorSimulation.getConsumer());
                     break;
             }
 
@@ -93,4 +101,13 @@ public class Menu {
             }
         }
     }
+    
+    private static int getTotalConsumed(ArrayList<Consumer> consumers) {
+        int total = 0;
+        for (Consumer c : consumers) {
+            total += c.getItemConsumed();
+        }
+        return total;
+    }
+    
 }
