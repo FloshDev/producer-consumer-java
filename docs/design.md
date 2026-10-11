@@ -91,3 +91,21 @@ nessun id consumato due volte.
 
 **Questione aperta:** come testare comportamenti che *richiedono* un ordine
 (es. "take si blocca se il buffer è vuoto")? → Fase 6.
+
+## Classi
+
+### D4. `Item`: classe immutabile con poison pill come costante
+
+**Decisione:**
+- `Item` è una classe `final` immutabile (campi `private final`, nessun setter) con due campi:
+  `id` (`int`) e `producerId` (`int`). Scritta in forma classica, non come `record`:
+  `equals`, `hashCode`, `toString` e getter sono espliciti.
+- La poison pill è una costante di `Item` con valori impossibili per un elemento reale (−1),
+  più un metodo che dice se un elemento è la pillola.
+
+**Motivazione:**
+- Immutabile → sicuro da condividere tra thread senza sincronizzazione.
+- `producerId` permette di mostrare da quale producer veniva un elemento perso o duplicato.
+- `int` basta per i volumi didattici. Limite noto: i parametri della TUI devono avere un massimo.
+- Pillola come costante e non `null`: le code bloccanti della libreria standard rifiutano `null`;
+  inoltre `null` non dice nulla, una costante con un nome sì.
